@@ -50,10 +50,9 @@
 //     updateTimeSpent(currentDomain, timeSpentMinutes);
 //   }
 // });
-
 let currentDomain = null;
 let startTime = null;
-let currentDate = new Date().toDateString();  // Save the current date as a string
+let currentDate = new Date().toDateString();  // Store the current date as a string
 
 function getDomain(url) {
   try {
@@ -73,24 +72,25 @@ function getMainPartOfDomain(domain) {
 }
 
 function updateTimeSpent(domain, timeSpentMinutes) {
-  chrome.storage.local.get('lastDate', (result) => {
-    const lastDate = result.lastDate || currentDate;
-
-    // Check if the date has changed
-    if (lastDate !== currentDate) {
-      chrome.storage.local.clear();  // Clear all stored data
-    }
-
-    chrome.storage.local.get([domain], (result) => {
-      const totalTime = (result[domain] || 0) + timeSpentMinutes;
-      chrome.storage.local.set({ [domain]: totalTime, 'lastDate': currentDate });
-    });
+  chrome.storage.local.get([domain], (result) => {
+    const totalTime = (result[domain] || 0) + timeSpentMinutes;
+    chrome.storage.local.set({ [domain]: totalTime });
   });
 }
 
+function checkAndResetData() {
+  const newDate = new Date().toDateString();
+  if (newDate !== currentDate) {
+    chrome.storage.local.clear();  // Clear all stored data
+    currentDate = newDate;  // Update the current date
+  }
+}
+
+// Check for a new day every 1 hour
+setInterval(checkAndResetData, 3600000);
+
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && tab.active) {
-    currentDate = new Date().toDateString();
     const newDomain = getMainPartOfDomain(getDomain(tab.url));
     if (currentDomain && currentDomain !== newDomain) {
       const endTime = new Date().getTime();
